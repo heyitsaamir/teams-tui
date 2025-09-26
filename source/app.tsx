@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, } from 'ink';
 import { Spinner, TextInput } from '@inkjs/ui'
 import { ColorName } from 'chalk';
+import { useWebSocket } from './hooks/useWebSocket.js';
 type Props = {
 	name: string | undefined;
 };
@@ -20,32 +21,24 @@ const Message = ({ message, role }: Message) => {
 }
 
 export default function App({ }: Props) {
-	const [messages, setMessages] = useState<Message[]>([]);
+	const { isConnected, sendMessage, messages, metadata } = useWebSocket('ws://localhost:3979/devtools/sockets');
 	const [loading, setLoading] = useState(false)
-	const getMessage = (value: string) => {
-		setLoading(true)
-		setTimeout(() => {
-			setLoading(false)
-			setMessages((p) => {
-				return [
-					...p,
-					{ role: 'assistant', message: `You said ${value}` }
-				]
-			})
-		}, 1000)
-	}
+
 	const addText = (value: string) => {
-		setMessages((p) => {
-			return [
-				...p,
-				{ role: "user", message: value },
-			]
-		})
-		getMessage(value)
+		setLoading(true)
+		sendMessage(value)
+		// Reset loading when we get a response (this could be improved)
+		setTimeout(() => setLoading(false), 2000)
 	}
 	return (
 		<Box gap={1} flexDirection='column' >
 			<Box flexDirection='column' gap={1}>
+				<Text color="green">
+					{isConnected ? '● Connected to devtools' : '○ Disconnected from devtools'}
+				</Text>
+				{metadata && (
+					<Text color="grey">Bot: {metadata.name || metadata.id || 'Unknown'}</Text>
+				)}
 				{messages.map((m, i) => <Message key={i} message={m.message} role={m.role} />)}
 			</Box>
 			<Box flexDirection='column'>
